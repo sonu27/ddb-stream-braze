@@ -33,42 +33,61 @@ func GetBrazeJSON(e events.DynamoDBEvent) *Payload {
 	for _, record := range e.Records {
 		fmt.Printf("Processing request data for event ID %s, type %s.\n", record.EventID, record.EventName)
 
-		SetRemovedKeysToNil(record.Change.OldImage, record.Change.NewImage)
-
-		data, err := json.Marshal(record.Change.NewImage)
+		oldData, err := ConvertToMap(record.Change.OldImage)
 		if err != nil {
 			panic(err)
 		}
 
-		av := make(map[string]*dynamodb.AttributeValue)
-		if err := json.Unmarshal(data, &av); err != nil {
+		newData, err := ConvertToMap(record.Change.NewImage)
+		if err != nil {
 			panic(err)
 		}
 
-		var out map[string]interface{}
-		if err := dynamodbattribute.UnmarshalMap(av, &out); err != nil {
-			panic(err)
-		}
-
-		// Rename uuid to external_id
-		out["external_id"] = out["uuid"]
-		delete(out, "uuid")
+		out := ChangeForBraze(oldData, newData)
 
 		payload.Attributes = append(payload.Attributes, out)
-
-		//jsonString, err := json.Marshal(out)
-		//fmt.Println(err, string(jsonString))
 	}
 
 	return payload
 }
 
-func SetRemovedKeysToNil(old map[string]events.DynamoDBAttributeValue, new map[string]events.DynamoDBAttributeValue) {
-	for k := range old {
-		if _, ok := new[k]; !ok {
-			new[k] = events.NewNullAttribute()
-		}
+func ConvertToMap(old map[string]events.DynamoDBAttributeValue) (map[string]interface{}, error) {
+	data, err := json.Marshal(old)
+	if err != nil {
+		return nil, err
 	}
+
+	av := make(map[string]*dynamodb.AttributeValue)
+	if err := json.Unmarshal(data, &av); err != nil {
+		return nil, err
+	}
+
+	var out map[string]interface{}
+	if err := dynamodbattribute.UnmarshalMap(av, &out); err != nil {
+		return nil, err
+	}
+
+	return out, nil
+}
+
+func ChangeForBraze(in map[string]interface{}, out map[string]interface{}) map[string]interface{} {
+	uuid := in["uuid"].(string)
+	for k := range in {
+		_, exists := out[k]
+		if exists {
+			if in[k] == out[k] {
+				delete(out, k)
+			}
+		} else {
+			out[k] = nil
+		}
+
+	}
+
+	// Rename uuid to external_id
+	out["external_id"] = uuid
+
+	return out
 }
 
 func TrackUsers(payload *Payload) {

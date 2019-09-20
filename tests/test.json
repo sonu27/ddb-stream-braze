@@ -22,21 +22,27 @@
         },
         "OldImage": {
           "uuid": {
-            "S": "data"
+            "S": "user-uuid"
           },
-          "asdf1": {
-            "S": "AAEqQQ=="
+          "custom-key-1": {
+            "S": "custom-value-1"
           },
-          "key": {
-            "S": "binary"
+          "custom-key-2": {
+            "S": "custom-value-2"
+          },
+          "custom-key-3": {
+            "S": "custom-value-3"
           }
         },
         "NewImage": {
           "uuid": {
-            "S": "data"
+            "S": "user-uuid"
           },
-          "key": {
-            "S": "binary"
+          "custom-key-1": {
+            "S": "custom-value-1"
+          },
+          "custom-key-2": {
+            "S": "custom-value-2-is-different"
           }
         },
         "SequenceNumber": "1405400000000002063282832",
