@@ -31,6 +31,10 @@ func GetBrazeJSON(e events.DynamoDBEvent) *Payload {
 	payload.Attributes = []map[string]interface{}{}
 
 	for _, record := range e.Records {
+		if record.EventName == "REMOVE" {
+			continue
+		}
+
 		fmt.Printf("Processing request data for event ID %s, type %s.\n", record.EventID, record.EventName)
 
 		oldData, err := ConvertToMap(record.Change.OldImage)
