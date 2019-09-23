@@ -1,6 +1,7 @@
 package braze
 
 import (
+	"ar/braze/dynamodb"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -10,8 +11,6 @@ import (
 	"os"
 
 	"github.com/aws/aws-lambda-go/events"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 )
 
 type Payload struct {
@@ -20,58 +19,57 @@ type Payload struct {
 }
 
 func HandleRequest(ctx context.Context, e events.DynamoDBEvent) {
-	payload := GetBrazeJSON(e)
+	payload := GetPayload(e)
 
-	TrackUsers(payload)
+	res, err := TrackUsers(payload)
+	if err != nil {
+		fmt.Println(err.Error())
+
+		if res != nil {
+			defer res.Body.Close()
+			resBody, _ := ioutil.ReadAll(res.Body)
+			fmt.Println(string(resBody))
+		}
+	}
 }
 
-func GetBrazeJSON(e events.DynamoDBEvent) *Payload {
+func GetPayload(e events.DynamoDBEvent) *Payload {
 	payload := new(Payload)
 	payload.APIKey = os.Getenv("BRAZE_API_KEY")
 	payload.Attributes = []map[string]interface{}{}
 
 	for _, record := range e.Records {
+		// ignore delete events
 		if record.EventName == "REMOVE" {
 			continue
 		}
 
-		fmt.Printf("Processing request data for event ID %s, type %s.\n", record.EventID, record.EventName)
-
-		oldData, err := ConvertToMap(record.Change.OldImage)
+		attribute, err := GetAttribute(record)
 		if err != nil {
-			panic(err)
+			fmt.Println(err.Error())
+			continue
 		}
 
-		newData, err := ConvertToMap(record.Change.NewImage)
-		if err != nil {
-			panic(err)
-		}
-
-		out := ChangeForBraze(oldData, newData)
-
-		payload.Attributes = append(payload.Attributes, out)
+		payload.Attributes = append(payload.Attributes, attribute)
 	}
 
 	return payload
 }
 
-func ConvertToMap(old map[string]events.DynamoDBAttributeValue) (map[string]interface{}, error) {
-	data, err := json.Marshal(old)
+func GetAttribute(record events.DynamoDBEventRecord) (map[string]interface{}, error) {
+	fmt.Printf("Processing request data for event ID %s, type %s.\n", record.EventID, record.EventName)
+
+	oldImage, err := dynamodb.ConvertAVToMap(record.Change.OldImage)
 	if err != nil {
 		return nil, err
 	}
 
-	av := make(map[string]*dynamodb.AttributeValue)
-	if err := json.Unmarshal(data, &av); err != nil {
+	newImage, err := dynamodb.ConvertAVToMap(record.Change.NewImage)
+	if err != nil {
 		return nil, err
 	}
 
-	var out map[string]interface{}
-	if err := dynamodbattribute.UnmarshalMap(av, &out); err != nil {
-		return nil, err
-	}
-
-	return out, nil
+	return ChangeForBraze(oldImage, newImage), nil
 }
 
 func ChangeForBraze(in map[string]interface{}, out map[string]interface{}) map[string]interface{} {
@@ -94,20 +92,29 @@ func ChangeForBraze(in map[string]interface{}, out map[string]interface{}) map[s
 	return out
 }
 
-func TrackUsers(payload *Payload) {
+func TrackUsers(payload *Payload) (*http.Response, error) {
 	url := "https://rest.fra-01.braze.eu/users/track"
 
-	jsonString, _ := json.Marshal(payload)
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
 
-	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonString))
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, err
+	}
 
 	req.Header.Add("Content-Type", "application/json")
 
-	res, _ := http.DefaultClient.Do(req)
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
 
-	defer res.Body.Close()
-	body, _ := ioutil.ReadAll(res.Body)
+	if res.StatusCode != http.StatusCreated {
+		return res, fmt.Errorf("response was not 201 Status Created, was status %d", res.StatusCode)
+	}
 
-	fmt.Println(res)
-	fmt.Println(string(body))
+	return res, nil
 }

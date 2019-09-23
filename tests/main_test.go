@@ -24,6 +24,6 @@ func Test1(t *testing.T) {
 	err = json.Unmarshal(dat, &e)
 	check(err)
 
-	payload := braze.GetBrazeJSON(e)
+	payload := braze.GetPayload(e)
 	fmt.Println(payload)
 }
