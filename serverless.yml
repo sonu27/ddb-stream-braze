@@ -1,0 +1,71 @@
+service: ddb-to-braze
+
+frameworkVersion: '>=1.28.0 <2.0.0'
+
+provider:
+  name: aws
+  runtime: go1.x
+  stage: ${opt:stage, "local"}
+  region: ${opt:region, "eu-west-1"}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - 'dynamodb:ListTables'
+        - 'dynamodb:DescribeTable'
+        - 'dynamodb:DescribeStream'
+        - 'dynamodb:ListStreams'
+        - 'dynamodb:GetShardIterator'
+        - 'dynamodb:BatchGetItem'
+        - 'dynamodb:GetItem'
+        - 'dynamodb:Query'
+        - 'dynamodb:Scan'
+        - 'dynamodb:DescribeReservedCapacity'
+        - 'dynamodb:DescribeReservedCapacityOfferings'
+        - 'dynamodb:GetRecords'
+      Resource:
+        - { "Fn::GetAtt": ["Users", "Arn"] }
+
+  environment:
+    BRAZE_API_KEY: 1768536e-dfdb-403b-9e07-917bbb8e767d
+
+package:
+  exclude:
+    - ./**
+  include:
+    - ./main
+
+functions:
+  ddb-to-braze:
+    name: ddb-to-braze
+    handler: main
+    memorySize: 128
+    timeout: 10
+    events:
+      - stream:
+          type: dynamodb
+          batchSize: 100
+          enabled: true
+          arn: { "Fn::GetAtt": ["Users", "StreamArn"] }
+
+resources:
+  Resources:
+    Users:
+      Type: 'AWS::DynamoDB::Table'
+      DeletionPolicy: Retain
+      Properties:
+        StreamSpecification:
+          StreamViewType: NEW_AND_OLD_IMAGES
+        AttributeDefinitions:
+          - AttributeName: uuid
+            AttributeType: S
+#          - AttributeName: name
+#            AttributeType: S
+        KeySchema:
+          - AttributeName: uuid
+            KeyType: HASH
+#          - AttributeName: name
+#            KeyType: RANGE
+        ProvisionedThroughput:
+          ReadCapacityUnits: 5
+          WriteCapacityUnits: 5
+        TableName: users
