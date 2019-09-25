@@ -1,23 +1,39 @@
 {
   "Records": [
     {
-      "eventID": "f07f8ca4b0b26cb9c4e5e77e69f274ee",
-      "eventName": "INSERT",
-      "eventVersion": "1.1",
-      "eventSource": "aws:dynamodb",
-      "awsRegion": "us-east-1",
-      "userIdentity": {
-        "type": "Service",
-        "principalId": "dynamodb.amazonaws.com"
-      },
+      "awsRegion": "eu-west-1",
       "dynamodb": {
-        "ApproximateCreationDateTime": 1480642020,
+        "ApproximateCreationDateTime": 1569336888,
         "Keys": {
-          "val": {
-            "S": "data"
+          "uuid": {
+            "S": "amarjeet-rai"
+          }
+        },
+        "NewImage": {
+          "test": {
+            "S": "test2"
           },
-          "key": {
-            "S": "binary"
+          "uuid": {
+            "S": "amarjeet-rai"
+          }
+        },
+        "SequenceNumber": "100000000020309984337",
+        "SizeBytes": 41,
+        "StreamViewType": "NEW_AND_OLD_IMAGES"
+      },
+      "eventID": "5351bb50d87d8399dd9eb982fc0f7801",
+      "eventName": "INSERT",
+      "eventSource": "aws:dynamodb",
+      "eventVersion": "1.1",
+      "eventSourceARN": "arn:aws:dynamodb:eu-west-1:1234:table/users/stream/2019-09-24T14:49:56.348"
+    },
+    {
+      "awsRegion": "eu-west-1",
+      "dynamodb": {
+        "ApproximateCreationDateTime": 1569403048,
+        "Keys": {
+          "uuid": {
+            "S": "amarjeet-rai"
           }
         },
         "OldImage": {
@@ -45,11 +61,15 @@
             "S": "custom-value-2-is-different"
           }
         },
-        "SequenceNumber": "1405400000000002063282832",
-        "SizeBytes": 54,
+        "SequenceNumber": "3108900000000000134661160",
+        "SizeBytes": 68,
         "StreamViewType": "NEW_AND_OLD_IMAGES"
       },
-      "eventSourceARN": "arn:aws:dynamodb:us-east-1:123456789012:table/Example-Table/stream/2016-12-01T00:00:00.000"
+      "eventID": "69d2f434dc9d8638b81249f2b1d42e8f",
+      "eventName": "MODIFY",
+      "eventSource": "aws:dynamodb",
+      "eventVersion": "1.1",
+      "eventSourceARN": "arn:aws:dynamodb:eu-west-1:1234:table/users/stream/2019-09-24T14:49:56.348"
     }
   ]
 }
