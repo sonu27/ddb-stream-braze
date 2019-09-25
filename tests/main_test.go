@@ -25,5 +25,6 @@ func Test1(t *testing.T) {
 	check(err)
 
 	payload := braze.GetPayload(e)
-	fmt.Println(payload)
+	b, err := json.MarshalIndent(payload, "", "  ")
+	fmt.Println(string(b))
 }
